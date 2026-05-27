@@ -17,14 +17,19 @@ fn bcftools_version() -> Option<String> {
 }
 
 fn bcftools_has_polysomy() -> bool {
-    // bcftools polysomy requires GSL; not all builds include it.
-    Command::new("bcftools")
+    // bcftools polysomy requires GSL; Ubuntu apt builds omit it and respond
+    // with exit≠0 + "unrecognized command 'polysomy'" on stderr.
+    let out = match Command::new("bcftools")
         .args(["polysomy", "--help"])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|s| s.code() != Some(127))
-        .unwrap_or(false)
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return false,
+    };
+    if !out.status.success() {
+        return false;
+    }
+    !String::from_utf8_lossy(&out.stderr).contains("unrecognized")
 }
 
 /// VCF used for basic smoke tests (existence of output, bcftools comparison).
