@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use tempfile::TempDir;
 
 fn ours() -> PathBuf {
