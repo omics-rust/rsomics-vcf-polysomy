@@ -16,6 +16,7 @@ path = "src/main.rs"
 name = "rsomics_vcf_polysomy"
 path = "src/lib.rs"
 
+doctest = false
 [dependencies]
 rsomics-common = { version = "0.6" }
 rsomics-help = { version = "0.3" }
