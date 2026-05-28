@@ -12,11 +12,7 @@ fn bench_vcf_polysomy(c: &mut Criterion) {
     c.bench_function("rsomics-vcf-polysomy golden", |b| {
         b.iter(|| {
             let out = Command::new(black_box(bin))
-                .args([
-                    vcf.to_str().unwrap(),
-                    "-o",
-                    dir.path().to_str().unwrap(),
-                ])
+                .args([vcf.to_str().unwrap(), "-o", dir.path().to_str().unwrap()])
                 .output()
                 .unwrap();
             assert!(out.status.success());
