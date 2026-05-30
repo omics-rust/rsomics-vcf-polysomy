@@ -11,11 +11,11 @@ const MAX_ITER: usize = 500;
 const CONVERGE_TOL: f64 = 1e-8;
 
 /// A single Gaussian component with optional parameter bounds.
+/// params = [a, b, c]: amplitude, centre, sigma; bounds = [a_lo,a_hi, b_lo,b_hi, c_lo,c_hi]
 #[derive(Clone)]
 pub struct Gaussian {
-    /// [a, b, c] — amplitude, centre, sigma
     pub params: [f64; 3],
-    pub bounds: Option<[f64; 6]>, // [a_lo,a_hi, b_lo,b_hi, c_lo,c_hi]
+    pub bounds: Option<[f64; 6]>,
 }
 
 impl Gaussian {
@@ -69,11 +69,9 @@ fn gradient(gs: &[Gaussian], xs: &[f64], ys: &[f64]) -> Vec<f64> {
             let z = (x - b) / c;
             let exp = (-z * z).exp();
             let a2 = a * a;
-            // df/da = 2a·exp
+            // df/da=2a·exp; df/db=2a²·(x-b)/c²·exp; df/dc=2a²·(x-b)²/c³·exp
             grad[gi * 3] += r * 2.0 * a * exp;
-            // df/db = 2a²·(x-b)/c² · exp
             grad[gi * 3 + 1] += r * 2.0 * a2 * (x - b) / (c * c) * exp;
-            // df/dc = 2a²·(x-b)²/c³ · exp
             grad[gi * 3 + 2] += r * 2.0 * a2 * (x - b) * (x - b) / (c * c * c) * exp;
         }
     }
@@ -116,7 +114,6 @@ pub fn fit_lm(gs: &mut Vec<Gaussian>, xs: &[f64], ys: &[f64]) -> f64 {
         let grad = gradient(gs, xs, ys);
         let hd = hessian_diag(gs, xs);
 
-        // LM update: Δp = -(H + λI)⁻¹ · g
         let mut delta = vec![0.0f64; grad.len()];
         for i in 0..grad.len() {
             let denom = hd[i] + lambda;
@@ -125,7 +122,6 @@ pub fn fit_lm(gs: &mut Vec<Gaussian>, xs: &[f64], ys: &[f64]) -> f64 {
             }
         }
 
-        // Proposed step.
         let mut proposed = gs.clone();
         for (pi, g) in proposed.iter_mut().enumerate() {
             g.params[0] += delta[pi * 3];
@@ -143,7 +139,6 @@ pub fn fit_lm(gs: &mut Vec<Gaussian>, xs: &[f64], ys: &[f64]) -> f64 {
             lambda *= 10.0;
         }
 
-        // Convergence: gradient magnitude below tolerance.
         let gnorm = grad.iter().map(|g| g * g).sum::<f64>().sqrt();
         if gnorm < CONVERGE_TOL {
             break;

@@ -1,7 +1,6 @@
 /// Per-chromosome BAF histogram with 150 bins over [0, 1].
 pub struct BafHistogram {
     pub chrom: String,
-    /// Raw bin counts, length == NBINS.
     pub counts: Vec<f64>,
 }
 
@@ -16,14 +15,12 @@ impl BafHistogram {
         }
     }
 
-    /// Add one BAF value to the histogram.
     pub fn push(&mut self, baf: f32) {
         let bin = (baf as f64 * (NBINS - 1) as f64) as usize;
         let bin = bin.min(NBINS - 1);
         self.counts[bin] += 1.0;
     }
 
-    /// x-coordinate for bin i.
     pub fn xval(i: usize) -> f64 {
         i as f64 / (NBINS - 1) as f64
     }
@@ -38,7 +35,7 @@ impl BafHistogram {
         let n = self.counts.len();
         let mut tmp = vec![0.0f64; n];
 
-        // Left edge: partial windows.  Both tmp[i] and self.counts[2*i-1] need i.
+        // Partial windows at the left edge: both tmp[i] and self.counts[2*i-1] depend on i.
         let mut avg = self.counts[0];
         tmp[0] = avg;
         #[allow(clippy::needless_range_loop)]
@@ -49,7 +46,6 @@ impl BafHistogram {
             tmp[i] = avg / (2 * i + 1) as f64;
         }
 
-        // Centre: full windows.
         let mut running = 0.0f64;
         for i in 0..n {
             running += self.counts[i];
@@ -64,7 +60,6 @@ impl BafHistogram {
         tmp
     }
 
-    /// Total count across all bins.
     pub fn total(&self) -> f64 {
         self.counts.iter().sum()
     }

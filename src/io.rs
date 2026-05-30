@@ -1,7 +1,4 @@
-/// VCF/BCF reader that extracts per-chromosome BAF distributions.
-///
-/// Reads the FORMAT/BAF float field exactly as bcftools polysomy does.
-/// Supports plain VCF and bgzf/gzip-compressed VCF (via flate2).
+// Reads the FORMAT/BAF float field exactly as bcftools polysomy does.
 use crate::histogram::BafHistogram;
 use crate::model::PolysomyArgs;
 use flate2::read::MultiGzDecoder;
@@ -9,10 +6,6 @@ use rsomics_common::{Result, RsomicsError};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-/// Open a VCF/BCF path and return per-chromosome BAF histograms.
-///
-/// Only the FORMAT/BAF field is read; GT/AD/DP are ignored.
-/// If the VCF has multiple samples, `-s` must have been specified.
 pub fn read_baf_distributions(path: &Path, args: &PolysomyArgs) -> Result<Vec<BafHistogram>> {
     let raw = std::fs::File::open(path)?;
     let is_gz = path
@@ -40,7 +33,6 @@ fn parse_vcf(reader: impl BufRead, args: &PolysomyArgs) -> Result<Vec<BafHistogr
             continue;
         }
         if line.starts_with('#') {
-            // Header: #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT sample1 …
             let cols: Vec<&str> = line.split('\t').collect();
             if cols.len() < 9 {
                 continue;
@@ -71,13 +63,11 @@ fn parse_vcf(reader: impl BufRead, args: &PolysomyArgs) -> Result<Vec<BafHistogr
             continue;
         }
 
-        // Data line.
         let scol = match sample_col {
             Some(c) => c,
             None => return Err(RsomicsError::InvalidInput("data line before header".into())),
         };
 
-        // Split fields: CHROM POS ID REF ALT QUAL FILTER INFO FORMAT sample…
         let cols: Vec<&str> = line.split('\t').collect();
         if cols.len() < 10 {
             continue;
@@ -85,13 +75,11 @@ fn parse_vcf(reader: impl BufRead, args: &PolysomyArgs) -> Result<Vec<BafHistogr
         let chrom = cols[0].to_string();
         let fmt_field = cols[8];
 
-        // Locate BAF in FORMAT.
         let baf_idx = match fmt_field.split(':').position(|f| f == "BAF") {
             Some(i) => i,
             None => continue,
         };
 
-        // Extract the target sample's data.
         let sample_str = match cols.get(9 + scol) {
             Some(s) => *s,
             None => continue,
@@ -108,7 +96,6 @@ fn parse_vcf(reader: impl BufRead, args: &PolysomyArgs) -> Result<Vec<BafHistogr
             continue;
         }
 
-        // New chromosome → new histogram.
         if chrom != prev_chrom {
             dists.push(BafHistogram::new(&chrom));
             prev_chrom = chrom;
